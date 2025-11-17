@@ -4,32 +4,26 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat curl bash
-
-# Install Bun
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-COPY package.json bun.lock ./       
-COPY prisma ./prisma             
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
 
-RUN bun install --frozen-lockfile
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
-RUN apk add --no-cache libc6-compat curl bash
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/prisma ./prisma 
+COPY --from=deps /app/prisma ./prisma
 COPY . .
 
-RUN bun prisma generate && bun run build
+RUN npx prisma generate && npm run build
 
 # Production image
 FROM base AS runner
