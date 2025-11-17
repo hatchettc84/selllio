@@ -1,0 +1,209 @@
+// This is your improved Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AttendedTypeEnum {
+  REGISTERED
+  ATTENDED
+  ADDED_TO_CART
+  FOLLOW_UP
+  BREAKOUT_ROOM
+  CONVERTED
+}
+
+enum CtaTypeEnum {
+  BUY_NOW
+  BOOK_A_CALL
+}
+
+enum WebinarStatusEnum {
+  SCHEDULED
+  WAITING_ROOM
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum CallStatusEnum {
+  PENDING
+  InProgress
+  COMPLETED
+}
+
+model User {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String     @db.VarChar(100)
+  clerkId          String     @unique
+  email            String     @unique
+  profileImage     String
+  webinars         Webinar[]  @relation("PresenterWebinars")
+  stripeConnectId  String?    @db.VarChar(255)
+  lastLoginAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+  subscription     Boolean    @default(false)
+  stripeCustomerId String?    @db.VarChar(255)
+  aiAgents         AiAgents[]
+
+  @@index([email])
+  @@index([clerkId])
+}
+
+model Webinar {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String            @db.VarChar(255)
+  description     String?           @db.Text
+  startTime       DateTime
+  endTime         DateTime?
+  duration        Int               @default(0) // Duration in minutes
+  webinarStatus   WebinarStatusEnum @default(SCHEDULED)
+  presenterId     String            @db.Uuid
+  presenter       User              @relation("PresenterWebinars", fields: [presenterId], references: [id], onDelete: Cascade)
+  attendances     Attendance[]
+  presentations   Presentation[]
+  tags            String[]
+  ctaLabel        String?           @db.VarChar(50)
+  ctaType         CtaTypeEnum
+  ctaUrl          String?           @db.VarChar(255)
+  couponCode      String?           @db.VarChar(50)
+  couponEnabled   Boolean           @default(false)
+  couponExpiry    DateTime?
+  lockChat        Boolean           @default(false)
+  stripeProductId String?           @db.VarChar(255)
+  aiAgentId       String?           @db.Uuid
+  priceId         String?           @db.VarChar(255)
+  recordingUrl    String?
+  thumbnail       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+  Attendee        Attendee?         @relation(fields: [attendeeId], references: [id])
+  attendeeId      String?           @db.Uuid
+
+  @@index([presenterId])
+  @@index([aiAgentId])
+  @@index([startTime])
+}
+
+model Attendee {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String         @unique
+  name       String         @db.VarChar(100)
+  callStatus CallStatusEnum @default(PENDING)
+  Attendance Attendance[]
+  Webinar    Webinar[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webinarId    String           @db.Uuid
+  joinedAt     DateTime         @default(now())
+  leftAt       DateTime?
+  user         Attendee         @relation(fields: [attendeeId], references: [id])
+  webinar      Webinar          @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  attendedType AttendedTypeEnum
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  attendeeId   String           @db.Uuid
+  userId       String?          @db.Uuid
+
+  @@unique([attendeeId, webinarId]) // ✅ This enforces 1 attendee per webinar
+  @@index([webinarId])
+  @@index([attendedType])
+}
+
+model AiAgents {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String  @db.VarChar(100)
+  firstMessage String  @db.Text
+  prompt     String  @db.Text
+  model      String  @db.VarChar(50)
+  provider   String  @db.VarChar(50)
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User User[]
+}
+
+model Presentation {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webinarId         String   @db.Uuid
+  webinar           Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  title             String   @db.VarChar(255)
+
+  // Source file (uploaded by user)
+  sourceFileUrl     String?  @db.Text
+  sourceFileType    String?  @db.VarChar(20) // pdf, docx, txt
+  sourceFileSize    Int?     // bytes
+
+  // Generated outputs
+  pptxUrl           String?  @db.Text  // PowerPoint download
+  revealJsUrl       String?  @db.Text  // HTML slides for live display
+
+  // AI processing data
+  aiModel           String?  @db.VarChar(50) // gpt-4o, claude-sonnet-4.5
+  extractedText     String?  @db.Text  // Cached parsed text
+  aiCostCents       Int      @default(0) // Track costs
+
+  // Status tracking
+  processingStatus  String   @default("pending") @db.VarChar(20)
+                             // pending, processing, completed, failed
+  errorMessage      String?  @db.Text
+  jobId             String?  @db.VarChar(100) // BullMQ job ID
+
+  // Metadata
+  slideCount        Int      @default(0)
+  metadata          Json?    // { theme, colors, extracted_products, etc }
+
+  // AI Presenter fields
+  aiPresenterEnabled Boolean  @default(false)
+  aiPresenterTimeline AIPresenterTimeline?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([webinarId])
+  @@index([processingStatus])
+}
+
+model AIPresenterTimeline {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  presentationId  String       @unique @db.Uuid
+  presentation    Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+
+  // Voice configuration
+  voiceModel      String       @default("tts-1-hd") @db.VarChar(50) // OpenAI TTS model
+  voiceName       String       @default("nova") @db.VarChar(50) // alloy, echo, fable, onyx, nova, shimmer
+  voiceSpeed      Float        @default(0.95) // 0.25 to 4.0
+
+  // Timeline data
+  totalDuration   Int          // Total duration in seconds
+  slides          Json         // Array of slide timings: [{slideIndex, audioUrl, duration, startTime, ctaTrigger}]
+
+  // Status
+  status          String       @default("pending") @db.VarChar(20) // pending, ready, processing, failed
+  errorMessage    String?      @db.Text
+
+  // Cost tracking
+  ttsTokens       Int          @default(0)
+  ttsCostCents    Int          @default(0)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([presentationId])
+  @@index([status])
+}
