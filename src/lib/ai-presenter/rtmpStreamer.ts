@@ -128,9 +128,8 @@ export class RTMPStreamController extends EventEmitter {
         resolve();
       });
 
-      this.ffmpegProcess.on('error', (err: Error | null, stdout: string, stderr: string) => {
+      this.ffmpegProcess.on('error', (err: Error) => {
         console.error('FFmpeg error:', err.message);
-        console.error('FFmpeg stderr:', stderr);
         reject(err);
       });
 

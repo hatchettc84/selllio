@@ -5,8 +5,17 @@
  * for use in presentation generation and AI processing.
  */
 
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
+
+// Dynamic import for pdf-parse (CommonJS module compatibility)
+let pdfParse: any;
+const getPdfParse = async () => {
+  if (!pdfParse) {
+    const module = await import('pdf-parse');
+    pdfParse = (module as any).default || module;
+  }
+  return pdfParse;
+};
 
 export interface ParsedDocument {
   text: string;
@@ -29,6 +38,7 @@ export interface ParserOptions {
  */
 async function parsePDF(buffer: Buffer, options?: ParserOptions): Promise<ParsedDocument> {
   try {
+    const pdf = await getPdfParse();
     const data = await pdf(buffer);
 
     let text = data.text;

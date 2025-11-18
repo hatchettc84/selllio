@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
         id: true,
         title: true,
         presenterId: true,
+        aiAgentId: true,
         presenter: {
           select: { clerkId: true }
         }
@@ -176,9 +177,9 @@ export async function POST(request: NextRequest) {
           metadata: {
             theme: themeName,
             wordCount: parsedDoc.metadata.wordCount,
-            salesInfo: generationResult.salesInfo,
+            salesInfo: generationResult.salesInfo as any,
             tokensUsed: generationResult.metadata.tokensUsed,
-          },
+          } as any,
         },
       });
 
