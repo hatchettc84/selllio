@@ -123,12 +123,12 @@ export class RTMPStreamController extends EventEmitter {
         ])
         .output(rtmpEndpoint);
 
-      this.ffmpegProcess.on('start', (commandLine) => {
+      this.ffmpegProcess.on('start', (commandLine: string) => {
         console.log('FFmpeg started:', commandLine);
         resolve();
       });
 
-      this.ffmpegProcess.on('error', (err, stdout, stderr) => {
+      this.ffmpegProcess.on('error', (err: Error | null, stdout: string, stderr: string) => {
         console.error('FFmpeg error:', err.message);
         console.error('FFmpeg stderr:', stderr);
         reject(err);

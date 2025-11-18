@@ -5,7 +5,7 @@
  * for use in presentation generation and AI processing.
  */
 
-import * as pdf from 'pdf-parse';
+import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export interface ParsedDocument {

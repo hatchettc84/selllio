@@ -210,7 +210,7 @@ export class AIPresenterController extends EventEmitter {
         const channel = this.chatClient.channel('livestream', this.config.channelId);
 
         await channel.sendEvent({
-          type: 'ai_presenter_slide_change',
+          type: 'ai_presenter_slide_change' as any,
           data: {
             slideIndex,
             timestamp: Date.now(),
@@ -240,7 +240,7 @@ export class AIPresenterController extends EventEmitter {
         const channel = this.chatClient.channel('livestream', this.config.channelId);
 
         await channel.sendEvent({
-          type: 'open_cta_dialog',
+          type: 'open_cta_dialog' as any,
           data: {
             ctaType,
             timestamp: Date.now(),

@@ -128,11 +128,11 @@ function createSlide(
 
   switch (slideData.type) {
     case 'title':
-      createTitleSlide(slide, slideData, theme);
+      createTitleSlide(slide, slideData, theme, pptx);
       break;
 
     case 'bullet':
-      createBulletSlide(slide, slideData, theme, slideNumber);
+      createBulletSlide(slide, slideData, theme, slideNumber, pptx);
       break;
 
     case 'content':
@@ -144,15 +144,15 @@ function createSlide(
       break;
 
     case 'comparison':
-      createComparisonSlide(slide, slideData, theme, slideNumber);
+      createComparisonSlide(slide, slideData, theme, slideNumber, pptx);
       break;
 
     case 'cta':
-      createCTASlide(slide, slideData, theme);
+      createCTASlide(slide, slideData, theme, pptx);
       break;
 
     default:
-      createBulletSlide(slide, slideData, theme, slideNumber);
+      createBulletSlide(slide, slideData, theme, slideNumber, pptx);
   }
 
   // Add speaker notes if available
@@ -167,7 +167,8 @@ function createSlide(
 function createTitleSlide(
   slide: any,
   slideData: SlideData,
-  theme: PresentationTheme
+  theme: PresentationTheme,
+  pptx: PptxGenJS
 ) {
   // Main title
   slide.addText(slideData.title, {
@@ -213,7 +214,8 @@ function createBulletSlide(
   slide: any,
   slideData: SlideData,
   theme: PresentationTheme,
-  slideNumber: number
+  slideNumber: number,
+  pptx: PptxGenJS
 ) {
   // Slide number
   slide.addText(`${slideNumber}`, {
@@ -365,7 +367,8 @@ function createComparisonSlide(
   slide: any,
   slideData: SlideData,
   theme: PresentationTheme,
-  slideNumber: number
+  slideNumber: number,
+  pptx: PptxGenJS
 ) {
   // Slide number
   slide.addText(`${slideNumber}`, {
@@ -432,7 +435,7 @@ function createComparisonSlide(
 /**
  * Create call-to-action slide
  */
-function createCTASlide(slide: any, slideData: SlideData, theme: PresentationTheme) {
+function createCTASlide(slide: any, slideData: SlideData, theme: PresentationTheme, pptx: PptxGenJS) {
   // Bold title
   slide.addText(slideData.title, {
     x: 1,
