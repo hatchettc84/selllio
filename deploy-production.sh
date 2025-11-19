@@ -29,14 +29,36 @@ dnf install -y git curl wget nano
 
 # Install Docker
 if ! command -v docker &> /dev/null; then
-    echo -e "${YELLOW}Installing Docker...${NC}"
-    dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
-    dnf install -y docker-ce docker-ce-cli containerd.io
+    echo -e "${YELLOW}Installing Docker for AlmaLinux/RHEL...${NC}"
+
+    # Install required dependencies
+    dnf install -y dnf-plugins-core
+
+    # Add Docker repository (RHEL-compatible for AlmaLinux)
+    dnf config-manager --add-repo=https://download.docker.com/linux/rhel/docker-ce.repo
+
+    # Install Docker
+    dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    # Start and enable Docker
     systemctl start docker
     systemctl enable docker
-    echo -e "${GREEN}Docker installed successfully${NC}"
+
+    # Verify Docker is running
+    if ! systemctl is-active --quiet docker; then
+        echo -e "${RED}Docker failed to start. Checking logs...${NC}"
+        journalctl -xeu docker.service --no-pager | tail -20
+        exit 1
+    fi
+
+    echo -e "${GREEN}Docker installed and running successfully${NC}"
 else
     echo -e "${GREEN}Docker already installed${NC}"
+    # Ensure Docker is running
+    if ! systemctl is-active --quiet docker; then
+        echo -e "${YELLOW}Starting Docker service...${NC}"
+        systemctl start docker
+    fi
 fi
 
 # Install Docker Compose
