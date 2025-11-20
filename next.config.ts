@@ -18,11 +18,13 @@ const nextConfig: NextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Mark FFmpeg as external to avoid bundling issues
+      // Mark FFmpeg and Prisma as external to avoid bundling issues
       config.externals = config.externals || [];
       config.externals.push({
         '@ffmpeg-installer/ffmpeg': '@ffmpeg-installer/ffmpeg',
         'fluent-ffmpeg': 'fluent-ffmpeg',
+        '@prisma/client': '@prisma/client',
+        '.prisma/client': '.prisma/client',
       });
     }
     return config;
