@@ -1,24 +1,43 @@
 import { prismaClient } from "@/lib/prismaClient";
 import { onAuthenticateUser } from "@/action/auth";
+import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { VapiChat } from "@/components/vapi/VapiChat";
 
 export default async function AIChatPage() {
-  const user = await onAuthenticateUser();
-
-  if (!user.user) {
+  // Check Clerk authentication first
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
     redirect("/sign-in");
   }
 
-  // Get the first AI agent for this user
-  const aiAgent = await prismaClient.aiAgents.findFirst({
-    where: {
-      userId: user.user.id,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  let user;
+  try {
+    user = await onAuthenticateUser();
+    if (!user.user) {
+      redirect("/sign-in");
+    }
+  } catch (error) {
+    // If DB fails, redirect to sign-in
+    console.log("Database error in ai-chat, redirecting to sign-in");
+    redirect("/sign-in");
+  }
+
+  // Get the first AI agent for this user with fallback
+  let aiAgent;
+  try {
+    aiAgent = await prismaClient.aiAgents.findFirst({
+      where: {
+        userId: user.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  } catch (dbError) {
+    console.log("Database error fetching AI agent");
+    aiAgent = null;
+  }
 
   if (!aiAgent) {
     return (
