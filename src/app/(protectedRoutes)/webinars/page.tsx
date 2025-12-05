@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { Webinar, WebinarStatusEnum } from "@prisma/client";
 import { Webcam } from "lucide-react";
 import Link from "next/link";
+import { currentUser } from "@clerk/nextjs/server";
 
 type Props = {
   searchParams: Promise<{
@@ -20,14 +21,32 @@ type Props = {
 
 const page = async ({ searchParams }: Props) => {
   const { webinarStatus } = await searchParams;
-  const checkUser = await onAuthenticateUser();
-  if (!checkUser.user) {
-    redirect("/");
+
+  // Check Clerk authentication first
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
+    redirect("/sign-in");
   }
-  const webinars = await getWebinarByPresenterId(
-    checkUser?.user?.id,
-    webinarStatus as WebinarStatusEnum
-  );
+
+  // Try to get database user with fallback
+  let userId: string;
+  let webinars: Webinar[] = [];
+
+  try {
+    const checkUser = await onAuthenticateUser();
+    if (!checkUser.user) {
+      redirect("/");
+    }
+    userId = checkUser.user.id;
+    webinars = await getWebinarByPresenterId(
+      userId,
+      webinarStatus as WebinarStatusEnum
+    );
+  } catch (error) {
+    console.log("Database error in webinars page, showing empty state");
+    // If database fails, show empty webinars list
+    webinars = [];
+  }
   return (
     <Tabs defaultValue="all" className="w-full flex flex-col gap-8">
       <PageHeader

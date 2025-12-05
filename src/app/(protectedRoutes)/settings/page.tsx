@@ -9,16 +9,35 @@ import {
   LucideAlertCircle,
   Check,
 } from 'lucide-react'
+import { currentUser } from '@clerk/nextjs/server'
 
 const StripeConnectPage = async () => {
-  const userExist = await onAuthenticateUser()
-
-  if (!userExist.user) {
+  // Check Clerk authentication first
+  const clerkUser = await currentUser()
+  if (!clerkUser) {
     redirect('/sign-in')
   }
 
-  const isConnected = !!userExist?.user?.stripeConnectId
-  const stripeLink = getStripeOAuthLink('api/stripe-connect', userExist.user.id)
+  // Try to get database user with fallback
+  let isConnected = false
+  let userId = clerkUser.id
+
+  try {
+    const userExist = await onAuthenticateUser()
+
+    if (!userExist.user) {
+      redirect('/sign-in')
+    }
+
+    isConnected = !!userExist?.user?.stripeConnectId
+    userId = userExist.user.id
+  } catch (error) {
+    console.log('Database error in settings, showing not connected state')
+    // If database fails, show not connected state
+    isConnected = false
+  }
+
+  const stripeLink = getStripeOAuthLink('api/stripe-connect', userId)
 
   return (
     <div className="w-full mx-auto py-8 px-4">
