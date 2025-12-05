@@ -33,12 +33,7 @@ export const createAssistant = async (name: string, userId: string) => {
         prompt: aiAgentPrompt,
         name: name,
         firstMessage: `Hi there, this is ${name} from customer support. How can I help you today?`,
-        userId: userId,
-        User:{
-          connect: {
-            id: userId,
-          },
-        }
+        userId: userId
       },
     });
 

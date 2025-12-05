@@ -3,6 +3,7 @@ import { getAllProductsFromStripe } from "@/action/stripe";
 import Header from "@/components/ReusableComponent/LayoutComponents/Header";
 import Sidebar from "@/components/ReusableComponent/LayoutComponents/Sidebar";
 import { UserWithAiAgent } from "@/lib/type";
+import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type React from "react";
 
@@ -13,11 +14,40 @@ type Props = {
 export const dynamic = 'force-dynamic';
 
 const Layout = async ({ children }: Props) => {
-  const userExist = await onAuthenticateUser();
-  if (!userExist.user) {
+  // First check Clerk authentication
+  const clerkUser = await currentUser();
+  if (!clerkUser) {
     redirect("/sign-in");
   }
-  const user = userExist.user as UserWithAiAgent;
+
+  // Try to get database user, but don't fail if DB is down
+  let user: UserWithAiAgent | null = null;
+  try {
+    const userExist = await onAuthenticateUser();
+    user = userExist.user as UserWithAiAgent;
+  } catch (error) {
+    console.log("Database error in layout, using Clerk user data");
+    // Create a minimal user object from Clerk data
+    // Note: This is a fallback - should have all required User fields
+    user = {
+      id: clerkUser.id,
+      clerkId: clerkUser.id,
+      email: clerkUser.emailAddresses[0]?.emailAddress || "",
+      name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
+      profileImage: clerkUser.imageUrl || "",
+      aiAgents: [],
+      role: "USER" as const,
+      subscription: false,
+      stripeConnectId: null,
+      stripeCustomerId: null,
+      lastLoginAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+      accountId: null,
+    } as UserWithAiAgent;
+  }
+
   const stripeProducts = await getAllProductsFromStripe();
 
 

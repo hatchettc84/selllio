@@ -37,6 +37,12 @@ enum CallStatusEnum {
   COMPLETED
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
 model User {
   id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String     @db.VarChar(100)
@@ -52,9 +58,16 @@ model User {
   subscription     Boolean    @default(false)
   stripeCustomerId String?    @db.VarChar(255)
   aiAgents         AiAgents[]
+  role             UserRole   @default(USER)
+  accountId        String?    @db.Uuid
+  account          Account?   @relation("AccountUsers", fields: [accountId], references: [id])
+  adminActivities  AdminActivity[]
+  ownedAccounts    Account[]  @relation("AccountOwner")
 
   @@index([email])
   @@index([clerkId])
+  @@index([role])
+  @@index([accountId])
 }
 
 model Webinar {
@@ -131,10 +144,11 @@ model AiAgents {
   model      String  @db.VarChar(50)
   provider   String  @db.VarChar(50)
   userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  User User[]
+  @@index([userId])
 }
 
 model Presentation {
@@ -206,4 +220,72 @@ model AIPresenterTimeline {
 
   @@index([presentationId])
   @@index([status])
+}
+
+model Account {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String   @db.VarChar(255)
+  ownerId         String   @db.Uuid
+  owner           User     @relation("AccountOwner", fields: [ownerId], references: [id])
+  
+  // Container/Docker info
+  containerId     String?  @db.VarChar(255)
+  containerStatus String?  @db.VarChar(50)
+  containerImage  String?  @db.VarChar(255)
+  containerPort   Int?
+  
+  // Account status
+  status          String   @default("active") @db.VarChar(50)
+  subscriptionTier String? @db.VarChar(50)
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  
+  users           User[]   @relation("AccountUsers")
+  containerLogs   ContainerLog[]
+
+  @@index([ownerId])
+  @@index([containerId])
+  @@index([status])
+}
+
+model AdminActivity {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId   String   @db.Uuid
+  admin     User     @relation(fields: [adminId], references: [id])
+  action    String   @db.VarChar(100)
+  resource  String   @db.VarChar(100)
+  resourceId String? @db.Uuid
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key       String   @unique @db.VarChar(100)
+  value     Json
+  updatedBy String?  @db.Uuid
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model ContainerLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId   String   @db.Uuid
+  account     Account  @relation(fields: [accountId], references: [id])
+  containerId String   @db.VarChar(255)
+  level       String   @db.VarChar(20)
+  message     String   @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  
+  @@index([accountId])
+  @@index([containerId])
+  @@index([createdAt])
 }

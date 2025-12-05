@@ -1,5 +1,5 @@
 'use client'
-import { Waitlist } from '@clerk/nextjs'
+import Link from 'next/link'
 
 import { motion } from 'framer-motion'
 
@@ -196,8 +196,19 @@ export default function HeroGeometric() {
             <p className="text-base sm:text-lg md:text-xl text-white/40 mb-8 leading-relaxed font-light tracking-wide max-w-xl mx-auto px-4">
               Transform your webinars into conversion machines with AI-powered sales agents and real-time engagement.
             </p>
-            <div className="flex items-center justify-center flex-col">
-              <Waitlist signInUrl="/sign-in" />
+            <div className="flex items-center justify-center gap-4 flex-col sm:flex-row">
+              <Link
+                href="/sign-in"
+                className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white bg-gradient-to-r from-indigo-500 to-rose-500 rounded-full hover:from-indigo-600 hover:to-rose-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/sign-up"
+                className="inline-flex items-center justify-center px-8 py-3 text-base font-semibold text-white border-2 border-white/20 rounded-full hover:border-white/40 hover:bg-white/5 transition-all duration-200"
+              >
+                Get Started
+              </Link>
             </div>
           </motion.div>
 

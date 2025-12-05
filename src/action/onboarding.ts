@@ -10,15 +10,32 @@ export const getOnboardingStatus = async () => {
     }
 
     // Get the current user's database record
-    const currentUserRecord = await prismaClient.user.findUnique({
-      where: {
-        clerkId: user.id,
-      },
-      include: {
-        webinars: true,
-        aiAgents: true,
-      },
-    });
+    let currentUserRecord;
+    try {
+      currentUserRecord = await prismaClient.user.findUnique({
+        where: {
+          clerkId: user.id,
+        },
+        include: {
+          webinars: true,
+          aiAgents: true,
+        },
+      });
+    } catch (dbError) {
+      console.log("Database error in onboarding, returning default status");
+      // Return default onboarding status if database is down
+      return {
+        status: 200,
+        steps: {
+          createWebinar: false,
+          connectStripe: false,
+          createAiAgent: false,
+          getLeads: false,
+          conversionStatus: false,
+        },
+      };
+    }
+
     console.log("🔴 currentUserRecord", currentUserRecord?.webinars);
 
     if (!currentUserRecord) {
