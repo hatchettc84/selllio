@@ -1,4 +1,3 @@
-import { VapiClient } from '@vapi-ai/server-sdk'
 import jwt from 'jsonwebtoken'
 
 // Define the payload
@@ -21,4 +20,42 @@ const options = {
 // Generate the token using a JWT library or built-in functionality
 const token = jwt.sign(payload, key, options)
 
-export const vapiServer = new VapiClient({ token: token })
+// VAPI API client without the compromised SDK
+export const vapiServer = {
+  assistants: {
+    async create(data: any) {
+      const response = await fetch('https://api.vapi.ai/assistant', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error(`VAPI API error: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      return { assistantId: result.id, ...result }
+    },
+
+    async update(assistantId: string, data: any) {
+      const response = await fetch(`https://api.vapi.ai/assistant/${assistantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error(`VAPI API error: ${response.statusText}`)
+      }
+
+      return await response.json()
+    },
+  },
+}
