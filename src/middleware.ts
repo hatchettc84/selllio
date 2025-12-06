@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const isPublicRoute = createRouteMatcher(['/','/sign-in(.*)', '/sign-up(.*)', "/api(.*)", "/live-webinar(.*)"])
-const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+const isAdminRoute = createRouteMatcher(['/admin(.*)', '/dashboard(.*)'])
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Protect all non-public routes
