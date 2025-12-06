@@ -4,6 +4,7 @@ import { AdminHeader } from '@/components/admin/layout/AdminHeader'
 import { AdminBreadcrumb } from '@/components/admin/layout/AdminBreadcrumb'
 import { isAdmin } from '@/lib/admin/permissions'
 import { onAuthenticateUser } from '@/action/auth'
+import { currentUser } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,19 +13,33 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Check authentication
-  const userExist = await onAuthenticateUser()
-  if (!userExist.user) {
+  // Check Clerk authentication first
+  const clerkUser = await currentUser()
+  if (!clerkUser) {
     redirect('/sign-in')
   }
 
-  // Check admin access
-  const hasAdminAccess = await isAdmin()
-  if (!hasAdminAccess) {
+  // Try to get database user with fallback
+  let user
+  let hasAdminAccess = false
+
+  try {
+    const userExist = await onAuthenticateUser()
+    if (!userExist.user) {
+      redirect('/sign-in')
+    }
+    user = userExist.user
+
+    // Check admin access
+    hasAdminAccess = await isAdmin()
+    if (!hasAdminAccess) {
+      redirect('/home')
+    }
+  } catch {
+    console.log('Database error in admin layout, redirecting to home')
+    // If database fails, redirect to home (can't verify admin status)
     redirect('/home')
   }
-
-  const user = userExist.user
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
