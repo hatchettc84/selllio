@@ -6,6 +6,18 @@ import { vapiServer } from "@/lib/vapi/vapiServer";
 
 export const createAssistant = async (name: string, userId: string) => {
   try {
+    console.log('[createAssistant] Starting creation for user:', userId, 'name:', name)
+
+    // Validate inputs
+    if (!name || !userId) {
+      return {
+        success: false,
+        status: 400,
+        message: "Name and userId are required",
+      }
+    }
+
+    // Create VAPI assistant
     const createAssistant = await vapiServer.assistants.create({
       name: name,
       firstMessage: `Hi there, this is ${name} from customer support. How can I help you today?`,
@@ -23,8 +35,9 @@ export const createAssistant = async (name: string, userId: string) => {
       serverMessages: [],
     });
 
-    console.log("Assistant created:", createAssistant);
+    console.log('[createAssistant] VAPI assistant created:', createAssistant.assistantId);
 
+    // Save to database
     const aiAgent = await prismaClient.aiAgents.create({
       data: {
         id: createAssistant.assistantId,
@@ -37,18 +50,39 @@ export const createAssistant = async (name: string, userId: string) => {
       },
     });
 
+    console.log('[createAssistant] Database record created:', aiAgent.id)
+
     return {
       success: true,
       status: 200,
       data: aiAgent,
     };
-  } catch (error) {
-    console.error("Error creating agent:", error);
+  } catch (error: any) {
+    // Detailed error logging
+    console.error('[createAssistant] Error occurred:')
+    console.error('  Error type:', error.constructor.name)
+    console.error('  Error message:', error.message)
+    console.error('  Full error:', error)
+
+    // Determine error type and return specific message
+    let errorMessage = "Failed to create agent"
+
+    if (error.message?.includes('VAPI API error')) {
+      errorMessage = `VAPI API error: ${error.message}`
+    } else if (error.message?.includes('Missing VAPI credentials')) {
+      errorMessage = "Server configuration error: VAPI credentials not configured"
+    } else if (error.code === 'P2002') { // Prisma unique constraint
+      errorMessage = "An agent with this ID already exists"
+    } else if (error.code?.startsWith('P')) { // Other Prisma errors
+      errorMessage = `Database error: ${error.message}`
+    }
+
     return {
       success: false,
       status: 500,
-      message: "Failed to create agent",
-    };
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    }
   }
 };
 

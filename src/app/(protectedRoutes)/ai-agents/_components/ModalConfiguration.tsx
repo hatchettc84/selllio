@@ -8,7 +8,7 @@ import DropdownSelect from "./DropDownSelect";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAiAgentStore } from "@/store/useAiAgentStore";
-import { updateAssistant } from "@/action/vapi";
+import { updateAssistant } from "@/action/aiAgents";
 import { toast } from "sonner";
 
 const ModelConfiguration = () => {

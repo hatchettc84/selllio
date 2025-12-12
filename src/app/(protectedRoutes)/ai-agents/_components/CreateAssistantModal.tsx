@@ -8,7 +8,7 @@ import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { createAssistant } from "@/action/vapi";
+import { createAssistant } from "@/action/aiAgents";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -30,15 +30,23 @@ const CreateAssistantModal = ({ isOpen, onClose, userId }: Props) => {
     try {
       const res = await createAssistant(name, userId);
       if (!res.success) {
-        throw new Error(res.message);
+        // Show specific error message from server
+        toast.error(res.message || "Failed to create assistant", {
+          description: res.details,
+          duration: 5000,
+        });
+        return;
       }
       router.refresh();
       setName("");
       onClose();
       toast.success("Assistant created successfully");
-    } catch (error) {
-      // console.error("Error creating assistant:", error);
-      toast.error("Failed to create assistant");
+    } catch (error: any) {
+      console.error("Error creating assistant:", error);
+      toast.error("Failed to create assistant", {
+        description: error.message || "An unexpected error occurred",
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }
