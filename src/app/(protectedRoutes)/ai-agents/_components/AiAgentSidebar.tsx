@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,27 @@ import { AiAgents } from "@prisma/client";
 
 type Props = {
   aiAgents: AiAgents[] | [];
-  userId:string
+  userId: string;
+  defaultAgentId?: string;
 };
 
-const AiAgentSidebar = ({ aiAgents,userId }: Props) => {
+const AiAgentSidebar = ({ aiAgents, userId, defaultAgentId }: Props) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { assistant, setAssistant } = useAiAgentStore();
 
+  // Auto-select default agent on mount if none selected
+  useEffect(() => {
+    if (!assistant && aiAgents.length > 0) {
+      // Use defaultAgentId if provided, otherwise use first agent
+      const agentToSelect = defaultAgentId
+        ? aiAgents.find((a) => a.id === defaultAgentId) || aiAgents[0]
+        : aiAgents[0];
+      
+      if (agentToSelect) {
+        setAssistant(agentToSelect);
+      }
+    }
+  }, [assistant, aiAgents, defaultAgentId, setAssistant]);
 
   return (
     <div className="w-[300px] border-r border-border flex flex-col">
@@ -37,19 +51,32 @@ const AiAgentSidebar = ({ aiAgents,userId }: Props) => {
         </div>
       </div>
       <ScrollArea className="mt-4 overflow-auto">
-        {aiAgents.map((aiAssistant) => (
-          <div
-            className={`p-4 ${
-              aiAssistant.id === assistant?.id ? "bg-primary/10" : ""
-            } hover:bg-primary/20 cursor-pointer`}
-            key={aiAssistant.id}
-            onClick={() => {
-              setAssistant(aiAssistant);
-            }}
-          >
-            <div className="font-medium">{aiAssistant.name}</div>
+        {aiAgents.length > 0 ? (
+          aiAgents.map((aiAssistant) => (
+            <button
+              type="button"
+              className={`w-full text-left p-4 ${
+                aiAssistant.id === assistant?.id ? "bg-primary/10" : ""
+              } hover:bg-primary/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50`}
+              key={aiAssistant.id}
+              onClick={() => {
+                setAssistant(aiAssistant);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setAssistant(aiAssistant);
+                }
+              }}
+            >
+              <div className="font-medium">{aiAssistant.name}</div>
+            </button>
+          ))
+        ) : (
+          <div className="p-4 text-neutral-400 text-sm text-center">
+            No agents available. Create one to get started.
           </div>
-        ))}
+        )}
       </ScrollArea>
 
       <CreateAssistantModal
