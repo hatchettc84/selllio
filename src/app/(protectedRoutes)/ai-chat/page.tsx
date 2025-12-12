@@ -2,7 +2,8 @@ import { prismaClient } from "@/lib/prismaClient";
 import { onAuthenticateUser } from "@/action/auth";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { VapiChat } from "@/components/vapi/VapiChat";
+import { HumeChat } from "@/components/hume/HumeChat";
+import { getHumeAccessToken } from "@/lib/hume/getHumeAccessToken";
 
 export default async function AIChatPage() {
   // Check Clerk authentication first
@@ -58,19 +59,42 @@ export default async function AIChatPage() {
     );
   }
 
+  // Get Hume access token (server-side)
+  let accessToken;
+  try {
+    accessToken = await getHumeAccessToken();
+  } catch (error: any) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center p-8">
+        <div className="max-w-md">
+          <h2 className="text-2xl font-bold mb-4 text-destructive">
+            Hume Configuration Error
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {error.message}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please contact your administrator to configure Hume EVI credentials.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6 h-[calc(100vh-100px)]">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">AI Agent Chat</h1>
         <p className="text-muted-foreground">
-          Test your AI agent with text-based conversations
+          Have an empathic voice conversation with your AI agent
         </p>
       </div>
 
       <div className="h-[calc(100%-80px)]">
-        <VapiChat
-          assistantId={aiAgent.id}
-          assistantName={aiAgent.name}
+        <HumeChat
+          accessToken={accessToken}
+          agentName={aiAgent.name}
+          configId={process.env.NEXT_PUBLIC_HUME_CONFIG_ID}
         />
       </div>
     </div>
